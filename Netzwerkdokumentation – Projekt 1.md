@@ -1,26 +1,26 @@
-## Netzwerkdokumentation – Projekt 1
+# Netzwerkdokumentation – Projekt 1
+**Firma:** FRB Software Entwicklung GmbH  
+**Typ:** Firmennetzwerk mit Leased Lines (VPN)  
+**Erstellt:** April 2026
 
-### 1) Ausgangsdaten
+---
+
+## 1) Ausgangsdaten
 
 | Parameter | Wert |
 |---|---|
 | Projekt Nr. | 1 |
-| Abt. Office (Verwaltung) | 7 Hosts |
 | Abt. Produktion | 22 Hosts |
+| Abt. Verwaltung (Office) | 7 Hosts |
 | Linz | 4 Endgeräte |
 | Graz | 40 Endgeräte |
 | Interner IP-Bereich | `10.10.0.0/20` |
-| Öffentlicher IP-Bereich | `199.121.123.128/?` |
-
-**Wichtige Anpassungen:**
-- Graz ist mit 40 Hosts deutlich größer.
-- Linz ist mit 4 Hosts sehr klein.
-- Verwaltung benötigt nur ein kleines Subnetz.
-- Basisnetz intern: `10.10.0.0/20`.
+| Öffentlicher IP-Bereich | `199.121.123.128/29` |
+| Öffentliche IP Web-Server | `199.121.123.130` |
 
 ---
 
-### 2) VLSM-Planung (mit ~20% Puffer)
+## 2) VLSM-Planung (mit ~20% Puffer)
 
 | Abteilung / Standort | Hosts (real) | Mit Puffer (~20%) | Benötigte Größe | Präfix |
 |---|---:|---:|---:|---|
@@ -32,12 +32,13 @@
 | Wien – Management | 2–3 | 4 | 8 Adressen | `/29` (6 Hosts) |
 | WAN Wien–Linz | 2 | 2 | 4 Adressen | `/30` (2 Hosts) |
 | WAN Wien–Graz | 2 | 2 | 4 Adressen | `/30` (2 Hosts) |
+| Öffentlich (ISP) | 3 | 4 | 8 Adressen | `/29` (6 Hosts) |
 
 ---
 
-### 3) Interne Subnetze (VLSM-Zuteilung)
+## 3) Interne Subnetze (VLSM-Zuteilung)
 
-#### Wien – Hauptsitz
+### Wien – Hauptsitz
 
 | Netz | Netzadresse | Subnetzmaske | Nutzbare Hosts | Gateway | Broadcast |
 |---|---|---|---|---|---|
@@ -46,13 +47,13 @@
 | Server | `10.10.0.48/29` | `255.255.255.248` | `10.10.0.49 – 10.10.0.54` (6) | `10.10.0.49` | `10.10.0.55` |
 | Management | `10.10.0.56/29` | `255.255.255.248` | `10.10.0.57 – 10.10.0.62` (6) | `10.10.0.57` | `10.10.0.63` |
 
-#### Linz – Niederlassung
+### Linz – Niederlassung
 
 | Netz | Netzadresse | Subnetzmaske | Nutzbare Hosts | Gateway | Broadcast |
 |---|---|---|---|---|---|
 | Linz LAN | `10.10.0.64/29` | `255.255.255.248` | `10.10.0.65 – 10.10.0.70` (6) | `10.10.0.65` | `10.10.0.71` |
 
-#### Graz – Niederlassung
+### Graz – Niederlassung
 
 | Netz | Netzadresse | Subnetzmaske | Nutzbare Hosts | Gateway | Broadcast |
 |---|---|---|---|---|---|
@@ -60,7 +61,7 @@
 
 ---
 
-### 4) WAN-Verbindungen (Leased Lines)
+## 4) WAN-Verbindungen (Leased Lines)
 
 | Strecke | Netzadresse | Subnetzmaske | Wien-Router | Gegenstelle | Broadcast |
 |---|---|---|---|---|---|
@@ -69,14 +70,14 @@
 
 ---
 
-### 5) Öffentliche IP-Adressen (ISP)
+## 5) Öffentliche IP-Adressen (ISP)
 
 Für Border-Router, Webserver und Reserve werden mindestens 3 öffentliche IPs benötigt.  
 Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 
 | Verwendung | IP-Adresse |
 |---|---|
-| Netzadresse | `199.121.123.128/29` |
+| Netzadresse | `199.121.123.128` |
 | Border Router (outside) | `199.121.123.129` |
 | Web-Server (öffentlich, fix) | `199.121.123.130` |
 | NAT-Pool Reserve | `199.121.123.131 – 199.121.123.134` |
@@ -84,94 +85,137 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 
 ---
 
-### 6) Gesamtübersicht
+## 6) VLAN-Schema
 
-- `10.10.0.0/27` → Wien Produktion (30 Hosts)  
-- `10.10.0.32/28` → Wien Verwaltung (14 Hosts)  
-- `10.10.0.48/29` → Wien Server (6 Hosts)  
-- `10.10.0.56/29` → Wien Management (6 Hosts)  
-- `10.10.0.64/29` → Linz LAN (6 Hosts)  
-- `10.10.0.72/30` → WAN Wien–Linz (2 Hosts)  
-- `10.10.0.76/30` → WAN Wien–Graz (2 Hosts)  
-- `10.10.0.128/26` → Graz LAN (62 Hosts)  
-- `199.121.123.128/29` → Öffentlich (ISP)
+### VLAN Übersicht
 
----
-
-### 7) Verwendete Geräte im Packet Tracer
-
-#### Netzwerkgeräte (aktiv)
-
-| Gerätetyp | Name im Diagramm | Funktion |
-|---|---|---|
-| Router | Border-Router | Internet-Anbindung, NAT/PAT |
-| Router | HQ Wien | Hauptrouter, Standortkopplung |
-| Router | Branch Linz | Router Niederlassung Linz |
-| Router | Branch Graz | Router Niederlassung Graz |
-| Switch | links (Produktion/Office) | Access-Switch Produktion |
-| Switch | rechts (Produktion/Office) | Access-Switch Verwaltung |
-
-#### Endgeräte
-
-| Gerätetyp | Name im Diagramm | Bereich |
-|---|---|---|
-| PC | Production PC1 | Produktion Wien |
-| PC | Office PC2 | Verwaltung Wien |
-| PC | Production PC3 | Produktion Wien |
-| PC | Office PC4 | Verwaltung Wien |
-| PC | NMC | Network Management Center |
-| Server | WEB-Server | Öffentlich |
-| Server | File-Server | Intern Wien |
-
-#### Sonstige Elemente
-
-| Element | Bedeutung |
-|---|---|
-| Internet-Cloud | ISP / Internet |
-| Leased Line (serielle Verbindungen) | WAN Wien↔Linz, Wien↔Graz |
+| VLAN-ID | Name | Subnetz | Standort |
+|---|---|---|---|
+| VLAN 10 | Produktion | `10.10.0.0/27` | Wien |
+| VLAN 20 | Verwaltung | `10.10.0.32/28` | Wien |
+| VLAN 30 | Server | `10.10.0.48/29` | Wien |
+| VLAN 40 | Management | `10.10.0.56/29` | Wien |
+| VLAN 50 | Linz_LAN | `10.10.0.64/29` | Linz |
+| VLAN 60 | Graz_LAN | `10.10.0.128/26` | Graz |
 
 ---
 
-### 8) Empfohlene Cisco-Hardware
+### Switch Wien Links (Produktion & Verwaltung)
 
-#### Switch
-**Empfohlen:** `Catalyst 2960-24TT`  
-Begründung: VLANs, Trunking, Port-Security, STP, 24 FE-Ports + Uplink-Ports.
+| Port | Gerät | VLAN | Port-Typ |
+|---|---|---|---|
+| Fa 0/1 | Production PC1 | VLAN 10 | Access |
+| Fa 0/2 | Production PC3 | VLAN 10 | Access |
+| Fa 0/3 | Office PC2 | VLAN 20 | Access |
+| Fa 0/4 | Office PC4 | VLAN 20 | Access |
+| Fa 0/24 | → Switch Rechts | Trunk | Trunk |
+| Gi 0/1 | → HQ Wien Router | Trunk | Trunk |
 
-#### Router
-**Empfohlen:** `Cisco 2911`
+### Switch Wien Rechts (Server & Management)
 
-**Modulbedarf für serielle Leitungen:**
-- HQ Wien: `2911 + WIC-2T` (2 serielle WAN-Links)
-- Branch Linz: `2911 + WIC-1T` (1 serieller WAN-Link)
-- Branch Graz: `2911 + WIC-1T` (1 serieller WAN-Link)
-- Border Router: `2911` (ohne serielles Modul ausreichend)
+| Port | Gerät | VLAN | Port-Typ |
+|---|---|---|---|
+| Fa 0/1 | File-Server | VLAN 30 | Access |
+| Fa 0/2 | Web-Server | VLAN 30 | Access |
+| Fa 0/3 | NMC (Management PC) | VLAN 40 | Access |
+| Fa 0/24 | → Switch Links | Trunk | Trunk |
+| Gi 0/1 | → HQ Wien Router | Trunk | Trunk |
+
+### Switch Linz
+
+| Port | Gerät | VLAN | Port-Typ |
+|---|---|---|---|
+| Fa 0/1 | Linz PC1 | VLAN 50 | Access |
+| Fa 0/2 | Linz PC2 | VLAN 50 | Access |
+| Fa 0/3 | Linz PC3 | VLAN 50 | Access |
+| Fa 0/4 | Linz PC4 | VLAN 50 | Access |
+| Gi 0/1 | → Branch Linz Router | Trunk | Trunk |
+
+### Switch Graz
+
+| Port | Gerät | VLAN | Port-Typ |
+|---|---|---|---|
+| Fa 0/1 – Fa 0/24 | Graz PC1–PC24 | VLAN 60 | Access |
+| Fa 0/1 – Fa 0/16 (Switch 2) | Graz PC25–PC40 | VLAN 60 | Access |
+| Gi 0/1 | → Branch Graz Router | Trunk | Trunk |
+| Gi 0/2 | → Switch Graz 2 | Trunk | Trunk |
+
+> ⚠️ Graz benötigt 2x Catalyst 2960-24TT (40 Endgeräte > 24 Ports)
 
 ---
 
-### 9) Leitungen / Kabeltypen
+## 7) Verwendete Geräte im Packet Tracer
+
+### Netzwerkgeräte (aktiv)
+
+| Gerätetyp | Modell | Name | Funktion |
+|---|---|---|---|
+| Router | Cisco 2911 | Border-Router | Internet-Anbindung, NAT/PAT |
+| Router | Cisco 2911 + WIC-2T | HQ Wien | Hauptrouter, Inter-VLAN, WAN |
+| Router | Cisco 2911 + WIC-1T | Branch Linz | Router Niederlassung Linz |
+| Router | Cisco 2911 + WIC-1T | Branch Graz | Router Niederlassung Graz |
+| Switch | Catalyst 2960-24TT | SW-Wien-Links | Access-Switch Produktion/Verwaltung |
+| Switch | Catalyst 2960-24TT | SW-Wien-Rechts | Access-Switch Server/Management |
+| Switch | Catalyst 2960-24TT | SW-Linz | Access-Switch Linz |
+| Switch | Catalyst 2960-24TT | SW-Graz-1 | Access-Switch Graz (PC 1–24) |
+| Switch | Catalyst 2960-24TT | SW-Graz-2 | Access-Switch Graz (PC 25–40) |
+
+### Endgeräte
+
+| Gerätetyp | Name | Bereich | IP-Bezug |
+|---|---|---|---|
+| PC | Production PC1 | VLAN 10 – Wien Produktion | DHCP |
+| PC | Production PC3 | VLAN 10 – Wien Produktion | DHCP |
+| PC | Office PC2 | VLAN 20 – Wien Verwaltung | DHCP |
+| PC | Office PC4 | VLAN 20 – Wien Verwaltung | DHCP |
+| PC | NMC | VLAN 40 – Management | Fixe IP |
+| Server | File-Server | VLAN 30 – Wien Server | Fixe IP (intern) |
+| Server | Web-Server | VLAN 30 / öffentlich | `199.121.123.130` (fix) |
+| PC | Linz PC1–PC4 | VLAN 50 – Linz LAN | DHCP |
+| PC | Graz PC1–PC40 | VLAN 60 – Graz LAN | DHCP |
+
+---
+
+## 8) Kabeltypen
 
 | Verbindung | Kabeltyp |
 |---|---|
 | PC → Switch | Copper Straight-Through |
 | Server → Switch | Copper Straight-Through |
 | Switch → Router | Copper Straight-Through |
-| Border Router → WEB-Server | Copper Straight-Through |
+| Switch ↔ Switch | Copper Cross-Over |
+| Border Router → Web-Server | Copper Straight-Through |
 | Border Router → Internet-Cloud | Copper Straight-Through |
 | HQ Wien → Border Router | Copper Straight-Through |
-| Switch ↔ Switch | Copper Cross-Over |
 | HQ Wien ↔ Branch Linz | Serial DCE/DTE |
 | HQ Wien ↔ Branch Graz | Serial DCE/DTE |
 
-**Hinweis Serial DCE/DTE:**  
-Am DCE-Ende muss eine `clock rate` gesetzt werden (z. B. `64000`).
+> **Hinweis Serial DCE/DTE:** Am DCE-Ende muss `clock rate 64000` gesetzt werden.
 
 ---
 
-### 10) Noch zu ergänzen (laut Aufgabenfokus)
+## 9) Sicherheitskonzept
 
-- Switch bei Branch Linz
-- Switch bei Branch Graz
-- Endgeräte gemäß Bedarf (Linz: 4, Graz: 40)
-- Optional: Firewall zwischen Border-Router und Internet
-- Optional: WLAN-Access-Point bei Laptop-Einsatz
+| Maßnahme | Wo | Beschreibung |
+|---|---|---|
+| NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP |
+| Statisches NAT | Border Router | Web-Server fix auf `199.121.123.130` |
+| File-Server isoliert | Kein NAT | Nur intern über VLAN 30 erreichbar |
+| Port-Security | Alle Access Switches | Max. 1 MAC-Adresse pro Port |
+| NMC Remote-Management | VLAN 40 | SSH-Zugriff auf alle Router/Switches |
+| VLAN-Trennung | Alle Switches | Abteilungen logisch isoliert |
+
+---
+
+## 10) Noch zu konfigurieren (Packet Tracer)
+
+- [ ] VLANs auf allen Switches erstellen
+- [ ] Access Ports zuweisen
+- [ ] Trunk Ports konfigurieren
+- [ ] Subinterfaces am HQ Wien Router (Inter-VLAN Routing)
+- [ ] DHCP-Pools auf HQ Wien Router
+- [ ] Statisches Routing Wien ↔ Linz ↔ Graz
+- [ ] NAT/PAT am Border Router
+- [ ] Port-Security auf Access Switches
+- [ ] SSH für NMC konfigurieren
+- [ ] Testen: Ping, Web-Zugriff, DHCP
