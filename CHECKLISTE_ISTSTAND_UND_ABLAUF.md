@@ -6,23 +6,28 @@
 
 ---
 
-## 1) Aktueller Ist-Stand (20.05.2026)
+## 1) Aktueller Ist-Stand (01.06.2026)
 
 ### Bereits erledigt
 - [x] Router Subinterfaces `.10/.20/.30/.40` konfiguriert
+- [x] Router Subinterfaces `.10/.20/.30/.40` sind **up/up** (`show ip interface brief`)
 - [x] Router DHCP Pools für VLAN 10/20/30/40 vorhanden
 - [x] Excluded Addresses gesetzt
 - [x] Switch1 VLANs 10/20/30/40 vorhanden
 - [x] Switch1 Trunk Fa0/24 aktiv
+- [x] Switch Wien-Links: VLAN 10/20/30/40 vorhanden
+- [x] Switch Wien-Links: Access-Ports gesetzt (`Fa0/1 -> VLAN10`, `Fa0/3 -> VLAN20`)
+- [x] Switch Wien-Links: Trunk `Fa0/24` aktiv
+- [x] Switch Wien-Links: Trunk `Gi0/1` zum Router aktiv
+- [x] NMC statische IP korrigiert (`10.10.0.58 / 255.255.255.248`, GW `10.10.0.57`)
+- [x] FileServer statische IP korrigiert (`10.10.0.50 / 255.255.255.248`, GW `10.10.0.49`)
 
 ### Teilweise erledigt / prüfen
-- [~] Switch Wien-Links: Trunk vorhanden, Access-Ports final prüfen
+- [x] Kein offener Punkt bei Schritt B (Switch Wien-Links verifiziert)
 
 ### Noch offen
-- [ ] NMC statische IP korrigieren (derzeit Konflikt)
-- [ ] FileServer statische IP korrigieren (derzeit Konflikt)
-- [ ] ACL 101/102/103 konfigurieren und anwenden
-- [ ] Erlaubte/Blockierte Ping-Tests durchführen und dokumentieren
+- [x] ACL 101/102/103 konfigurieren und anwenden
+- [x] Erlaubte/Blockierte Ping-Tests durchführen und dokumentieren
 
 ---
 
@@ -43,8 +48,8 @@
 - Default Gateway: `10.10.0.49`
 
 ### A3) Nachweis
-- [ ] Screenshot SS-06 (NMC IP)
-- [ ] Screenshot SS-07 (FileServer IP/Services)
+- [x] Screenshot SS-06 (NMC IP)
+- [x] Screenshot SS-07 (FileServer IP/Services)
 
 ---
 
@@ -87,14 +92,14 @@ end
 ### C1) ACL erstellen (Router)
 ```bash
 conf t
-access-list 101 remark Produktion VLAN10
+access-list 101 remark Production VLAN10
 access-list 101 permit icmp 10.10.0.0 0.0.0.31 10.10.0.48 0.0.0.7
 access-list 101 permit icmp 10.10.0.0 0.0.0.31 10.10.0.0 0.0.0.31
 access-list 101 deny icmp 10.10.0.0 0.0.0.31 10.10.0.32 0.0.0.15
 access-list 101 deny icmp 10.10.0.0 0.0.0.31 10.10.0.56 0.0.0.7
 access-list 101 permit ip any any
 
-access-list 102 remark Verwaltung VLAN20
+access-list 102 remark Office VLAN20
 access-list 102 permit icmp 10.10.0.32 0.0.0.15 10.10.0.48 0.0.0.7
 access-list 102 permit icmp 10.10.0.32 0.0.0.15 10.10.0.32 0.0.0.15
 access-list 102 deny icmp 10.10.0.32 0.0.0.15 10.10.0.0 0.0.0.31
@@ -131,18 +136,18 @@ show ip interface gi0/0.10
 ## Schritt D – Tests + Abnahme (ca. 15 Min)
 
 ### D1) Erlaubte Pings (müssen funktionieren)
-- [ ] Produktion → FileServer: `ping 10.10.0.50`
-- [ ] Verwaltung → FileServer: `ping 10.10.0.50`
-- [ ] NMC → Produktion: `ping 10.10.0.2`
+- [x] Produktion → FileServer: `ping 10.10.0.50`
+- [x] Verwaltung → FileServer: `ping 10.10.0.50`
+- [x] NMC → Produktion: `ping 10.10.0.2`
 
 ### D2) Blockierte Pings (müssen fehlschlagen)
-- [ ] Produktion → Verwaltung: `ping 10.10.0.34`
-- [ ] Verwaltung → Produktion: `ping 10.10.0.2`
-- [ ] Produktion → NMC: `ping 10.10.0.58`
+- [x] Produktion → Verwaltung: `ping 10.10.0.34`
+- [x] Verwaltung → Produktion: `ping 10.10.0.2`
+- [x] Produktion → NMC: `ping 10.10.0.58`
 
 ### D3) Nachweis
-- [ ] Screenshot SS-09 (erlaubter Ping)
-- [ ] Screenshot SS-10 (blockierter Ping)
+- [x] Screenshot SS-09 (erlaubter Ping)
+- [x] Screenshot SS-10 (blockierter Ping)
 
 ---
 

@@ -3,6 +3,10 @@
 **Typ:** Firmennetzwerk mit Leased Lines (VPN)  
 **Erstellt:** April 2026
 
+> **Hinweis zur Bebilderung:**
+> Lege alle Screenshots im Ordner `screenshots/` ab.  
+> Beispiel: `screenshots/SS-01_Topologie_2026-05-20.png`
+
 ---
 
 ## 1) Ausgangsdaten
@@ -207,15 +211,49 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 
 ---
 
-## 10) Noch zu konfigurieren (Packet Tracer)
+## 10) Umsetzungsstatus (Packet Tracer)
 
-- [ ] VLANs auf allen Switches erstellen
-- [ ] Access Ports zuweisen
-- [ ] Trunk Ports konfigurieren
-- [ ] Subinterfaces am HQ Wien Router (Inter-VLAN Routing)
-- [ ] DHCP-Pools auf HQ Wien Router
-- [ ] Statisches Routing Wien ↔ Linz ↔ Graz
-- [ ] NAT/PAT am Border Router
-- [ ] Port-Security auf Access Switches
-- [ ] SSH für NMC konfigurieren
-- [ ] Testen: Ping, Web-Zugriff, DHCP
+- [x] VLANs auf allen Switches erstellt
+- [x] Access Ports zugewiesen
+- [x] Trunk Ports konfiguriert
+- [x] Subinterfaces am HQ Wien Router (Inter-VLAN Routing)
+- [x] DHCP-Pools auf HQ Wien Router
+- [x] ACLs für VLAN-Zugriffe umgesetzt
+- [x] Testen: Ping, ACL-Verhalten, Gateway-Erreichbarkeit
+
+---
+
+## 11) Bilddokumentation (Screenshots)
+
+> Füge die Bilddateien in `screenshots/` ein.  
+> Wenn ein Bild noch fehlt, bleibt der Platzhalter einfach stehen.
+
+### SS-01 – Topologie vor Konfiguration
+![SS-01 Topologie](screenshots/SS-01_Topologie.png)
+
+### SS-02 – Router `show ip interface brief`
+![SS-02 Router show ip interface brief](screenshots/SS-02_Router_show_ip_interface_brief_2026-05-20.png)
+
+### SS-03 – Router `show ip dhcp pool`
+![SS-03 Router show ip dhcp pool](screenshots/SS-03_DHCP_Pool.png)
+
+### SS-04 – Switch Wien VLAN + Trunk
+![SS-04 Switch Wien VLAN Trunk](<screenshots/SS-02_Switch_show_vlan_brief_show_interfaces_trunk_2026-05-20.png>)
+
+### SS-05 – Switch1 VLAN + Trunk
+![SS-05 Switch1 VLAN Trunk](<screenshots/SS-02_Switch_show_vlan_brief_show_interfaces_trunk_sw2_2026-05-20.png>)
+
+### SS-06 – NMC IP-Konfiguration
+![SS-06 NMC + FileServer IP Config](screenshots/NMC_PC_FileServerCONFIG.png)
+
+### SS-07 – FileServer IP + Services
+![SS-07 FileServer HTTP Service](<screenshots/Bildschirmfoto vom 2026-06-13 21-03-54.png>)
+
+### SS-08 – ACL-Nachweis (`show access-lists`)
+![SS-08 ACL Nachweis](<screenshots/Bildschirmfoto vom 2026-06-13 21-08-24.png>)
+
+### SS-09 – Erlaubter Ping
+![SS-09 Erlaubter Ping Production-PC1](screenshots/ping_nachweis.png)
+
+### SS-10 – Blockierter Ping
+![SS-10 Blockierter Ping Office-PC2](screenshots/ping_nachweis2.png)
