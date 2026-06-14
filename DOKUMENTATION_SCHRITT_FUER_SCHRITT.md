@@ -1005,7 +1005,7 @@ Damit sind die Projektziele erfüllt und die Testergebnisse sind auch für Nicht
 - [x] Phase 10 – NAT/PAT ✅
 - [x] Phase 11 – SSH ✅
 - [x] Phase 12 – Port-Security ✅
-- [ ] ⚠️ Konfiguration Branch Linz/Graz + Border Router gespeichert
+- [x] Konfiguration auf HQ Wien, Border, Linz und Graz gespeichert ✅ (`copy running-config startup-config`)
 - [x] Protokoll vollständig ✅
 
 ### Abschlussbefehl (auf allen Geräten)

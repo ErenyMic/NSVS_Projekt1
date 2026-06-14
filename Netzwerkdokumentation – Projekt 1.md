@@ -3,9 +3,6 @@
 **Typ:** Firmennetzwerk mit Leased Lines (VPN)  
 **Erstellt:** April 2026
 
-> **Hinweis zur Bebilderung:**
-> Lege alle Screenshots im Ordner `screenshots/` ab.  
-> Beispiel: `screenshots/SS-01_Topologie_2026-05-20.png`
 
 ---
 
@@ -182,32 +179,37 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 
 ## 8) Kabeltypen
 
-| Verbindung | Kabeltyp |
-|---|---|
-| PC → Switch | Copper Straight-Through |
-| Server → Switch | Copper Straight-Through |
-| Switch → Router | Copper Straight-Through |
-| Switch ↔ Switch | Copper Cross-Over |
-| Border Router → Web-Server | Copper Straight-Through |
-| Border Router → Internet-Cloud | Copper Straight-Through |
-| HQ Wien → Border Router | Copper Straight-Through |
-| HQ Wien ↔ Branch Linz | Serial DCE/DTE |
-| HQ Wien ↔ Branch Graz | Serial DCE/DTE |
+| Verbindung | Kabeltyp | Warum dieser Kabeltyp? |
+|---|---|---|
+| PC → Switch | Copper Straight-Through | Endgerät und Switch haben unterschiedliche Port-Typen (MDI ↔ MDI-X), daher ist Straight-Through der Standard. |
+| Server → Switch | Copper Straight-Through | Wie bei PCs: Server (Endgerät) zu Switch (Infrastrukturgerät) wird standardmäßig mit Straight-Through verbunden. |
+| Switch → Router | Copper Straight-Through | Router- und Switch-Ports sind für diese Verbindung als unterschiedliche Gegenstellen ausgelegt; Straight-Through ist die übliche Wahl. |
+| Switch ↔ Switch | Copper Cross-Over | Zwei gleichartige Geräte werden klassisch per Cross-Over verbunden, damit Sende-/Empfangsadern gekreuzt sind. |
+| Border Router → Web-Server | Copper Straight-Through | Router zu Endgerät (Server) ist eine klassische unterschiedliche Geräteverbindung, daher Straight-Through. |
+| Border Router → Internet-Cloud | Copper Straight-Through | In Packet Tracer wird die Cloud-Seite wie eine passende Gegenstelle modelliert; Straight-Through funktioniert als Standard-Uplink. |
+| HQ Wien → Border Router | Copper Straight-Through | In diesem Projektaufbau (GigabitEthernet-Uplink) wird die Router-zu-Router-Verbindung stabil mit Straight-Through betrieben. |
+| HQ Wien ↔ Branch Linz | Serial DCE/DTE | Leased-Line/WAN-Strecke wird seriell simuliert; DCE liefert den Takt (`clock rate`), DTE empfängt ihn. |
+| HQ Wien ↔ Branch Graz | Serial DCE/DTE | Wie bei Linz: WAN-Leitung wird als serielle Provider-Strecke mit DCE/DTE-Rollen umgesetzt. |
 
 > **Hinweis Serial DCE/DTE:** Am DCE-Ende muss `clock rate 64000` gesetzt werden.
+>
+> **Nachweis in Packet Tracer (CLI):** Auf dem DCE-Router (HQ Wien) mit
+> `show running-config interface serial 0/3/0` bzw. `show running-config interface serial 0/3/1` prüfen.
+> In der Ausgabe muss die Zeile `clock rate 64000` sichtbar sein.
 
 ---
 
 ## 9) Sicherheitskonzept
 
-| Maßnahme | Wo | Beschreibung |
-|---|---|---|
-| NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP |
-| Statisches NAT | Border Router | Web-Server fix auf `199.121.123.130` |
-| File-Server isoliert | Kein NAT | Nur intern über VLAN 30 erreichbar |
-| Port-Security | Alle Access Switches | Max. 1 MAC-Adresse pro Port |
-| NMC Remote-Management | VLAN 40 | SSH-Zugriff auf alle Router/Switches |
-| VLAN-Trennung | Alle Switches | Abteilungen logisch isoliert |
+| Maßnahme | Wo | Beschreibung | Begründung |
+|---|---|---|---|
+| ACL-Zugriffssteuerung | HQ Wien Router (Subinterfaces) | Kommunikation zwischen Abteilungen wird gezielt erlaubt oder blockiert | Reduziert ungewollte Zugriffe zwischen VLANs (z. B. Produktion ↔ Office) und setzt das Least-Privilege-Prinzip um. |
+| NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP | Interne Adressen bleiben nach außen verborgen; zusätzlich werden öffentliche IPs effizient genutzt. |
+| Statisches NAT (Web-Server) | Border Router | Web-Server fix auf `199.121.123.130` | Der Webdienst ist von außen stabil unter einer festen öffentlichen IP erreichbar. |
+| File-Server isoliert (kein NAT) | Kein NAT-Eintrag am Border Router | File-Server bleibt nur intern über VLAN 30 erreichbar | Verhindert direkte Erreichbarkeit aus externen Netzen und schützt interne Daten. |
+| Port-Security | Alle Access Switches | Max. 1 MAC-Adresse pro Port, `violation restrict`, `sticky` | Erschwert das Anstecken fremder Geräte und begrenzt Missbrauch an physischen Ports. |
+| NMC Remote-Management (SSH) | VLAN 40 / Router & Switches | Administrativer Zugriff über SSH statt Telnet | Zugangsdaten und Management-Verkehr sind verschlüsselt; sicherer Betrieb der Netzwerkgeräte. |
+| VLAN-Trennung | Alle Switches | Abteilungen sind logisch in getrennten VLANs aufgebaut | Segmentierung begrenzt Broadcast-Domänen und erhöht Sicherheit sowie Übersichtlichkeit. |
 
 ---
 
