@@ -952,6 +952,50 @@ show port-security
 
 ---
 
+## Testungen des Systems durchgeführt mit: Ping, Browser und Router-Prüfung
+
+### Was wir getestet haben (einfach erklärt)
+
+| Test | Was heißt das in einfach? | Erwartung | Ergebnis |
+|---|---|---|---|
+| `ping 10.10.0.50` (Production → File-Server) | „Kann der PC den Server im Firmennetz erreichen?“ | Ja, muss erreichbar sein | ✅ Funktioniert |
+| `ping 10.10.0.34` (Production → Office) | „Dürfen Produktion und Büro direkt miteinander reden?“ | Nein, soll aus Sicherheitsgründen gesperrt sein | ✅ Wird blockiert |
+| `ping 10.10.0.2` (NMC → Production) | „Darf die IT/Verwaltung alles prüfen?“ | Ja, Management muss Zugriff haben | ✅ Funktioniert |
+| Linz/Graz → Wien | „Kommen die Außenstellen zur Zentrale durch?“ | Ja, über die WAN-Verbindung | ✅ Funktioniert |
+| Browser: `http://199.121.123.130` | „Ist die Webseite von außen erreichbar?“ | Ja, Seite muss laden | ✅ Funktioniert |
+| `show ip nat translations` | „Übersetzt der Border-Router interne in öffentliche Adressen?“ | Ja, Einträge müssen sichtbar sein | ✅ Nachweis vorhanden |
+| Optional: `ping 199.121.123.130` | „Antwortet die öffentliche IP auch auf Ping?“ | Kann erlaubt oder absichtlich gesperrt sein | ⚠️ Teilweise Timeout |
+
+### Warum funktioniert manches – und manches nicht?
+
+Stell dir das Netzwerk wie ein Gebäude mit Türen vor:
+
+- **Erlaubte Türen sind offen** → z. B. Zugriff auf den Server oder auf die Webseite. Deshalb funktionieren diese Tests.
+- **Verbotene Türen sind zu** → z. B. direkte Kommunikation zwischen bestimmten Abteilungen. Deshalb schlagen diese Pings absichtlich fehl.
+
+Das ist **gewollt** und ein Zeichen, dass die Sicherheitsregeln korrekt arbeiten.
+
+### Warum geht Webseite, aber Ping manchmal nicht?
+
+Das ist ein häufiger Fall in echten Netzwerken:
+
+- Der Browser nutzt **HTTP** (Web-Verkehr) → ist erlaubt ✅
+- Ping nutzt **ICMP** → kann aus Sicherheitsgründen blockiert sein ❌
+
+Darum kann die Webseite laden, obwohl Ping auf dieselbe öffentliche IP keine Antwort gibt. Das ist **kein Fehler**, sondern oft eine bewusste Einstellung.
+
+### Verständliches Gesamtfazit
+
+Das System arbeitet logisch und stabil:
+
+- Was erlaubt sein soll, funktioniert.
+- Was gesperrt sein soll, wird gesperrt.
+- Außenstellen, Serverzugriff und Webzugriff funktionieren wie geplant.
+
+Damit sind die Projektziele erfüllt und die Testergebnisse sind auch für Nicht-Techniker nachvollziehbar.
+
+---
+
 ## Abschluss + Abgabe (Final)
 
 ### Final Checks
