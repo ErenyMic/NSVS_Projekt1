@@ -9,7 +9,7 @@
 
 - **Projekt:** NSVS Projekt 1 – Firmennetzwerk
 - **Klasse/Gruppe:** 4AKIFT
-- **Bearbeiter:** Micail Ereny
+- **Bearbeiter:** Micail Ereny und Alexander Tieber 
 - **Datum:** 13.06.2026
 - **Packet Tracer Datei:** `Projekt1.pkt`
 
