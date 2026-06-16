@@ -102,9 +102,9 @@
 | Port | Gerät | VLAN | Port-Typ |
 |---|---|---|---|
 | Fa0/1 | Production-PC1 | VLAN 10 | Access |
-| Fa0/2 | Production-PC3 | VLAN 10 | Access |
+| Fa0/2 | Production-PC2 | VLAN 10 | Access |
 | Fa0/3 | Office-PC2 | VLAN 20 | Access |
-| Fa0/4 | Office-PC4 | VLAN 20 | Access |
+| Fa0/4 | Office-PC3 | VLAN 20 | Access |
 | Fa0/24 | → Switch1 (Rechts) | Trunk | Trunk |
 | Gi0/1 | → HQ Wien Router | Trunk | Trunk |
 
@@ -188,9 +188,9 @@
 | ACL 102 | HQ Wien Gi0/0.20 (inbound) | Office darf nur Server + eigenes VLAN; Production + Management blockiert |
 | ACL 103 | HQ Wien Gi0/0.40 (inbound) | Management (NMC) darf alles |
 | NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP (`overload`) |
-| Statisches NAT | Border Router | File-Server fix auf `199.121.123.130` |
-| Port-Security | SW-Wien-Links + Switch1 | Max. 1 MAC pro Port, `violation restrict`, `sticky` |
-| SSH v2 | HQ Wien | NMC-Fernzugriff mit `admin` / `cisco123`, domain `frb.local` |
+| Web-Server direkt | Border Router Gi0/0 | Web-Server hat öffentliche IP `199.121.123.130` direkt (kein NAT) |
+| Port-Security | Alle Switches (Wien, Linz, Graz) | Max. 1 MAC pro Port, `violation restrict`, `sticky` |
+| SSH v2 | Alle Router + Switches | NMC-Fernzugriff mit `admin` / `cisco123`, domain `frb.local` |
 | VLAN-Trennung | Alle Switches | Abteilungen logisch isoliert |
 
 ---
@@ -206,7 +206,7 @@
 - [x] Phase 7 – Tests + Validierung
 - [x] Phase 8 – Leased Lines Wien ↔ Linz/Graz + Statisches Routing
 - [x] Phase 9 – Border Router konfigurieren
-- [x] Phase 10 – NAT/PAT + statisches NAT (Web-Server)
+- [x] Phase 10 – NAT/PAT
 - [x] Phase 11 – SSH Remote Management (NMC)
 - [x] Phase 12 – Port-Security (LAN-Security)
 - [x] Abschluss + Abgabe
@@ -302,7 +302,11 @@ exit
 ip dhcp excluded-address 10.10.0.1
 ip dhcp excluded-address 10.10.0.33
 ip dhcp excluded-address 10.10.0.49
+ip dhcp excluded-address 10.10.0.50
 ip dhcp excluded-address 10.10.0.57
+ip dhcp excluded-address 10.10.0.58
+ip dhcp excluded-address 10.10.0.59
+ip dhcp excluded-address 10.10.0.60
 
 ip dhcp pool VLAN10_Production
  network 10.10.0.0 255.255.255.224
@@ -360,7 +364,17 @@ interface fa0/1
  switchport access vlan 10
  no shutdown
 exit
+interface fa0/2
+ switchport mode access
+ switchport access vlan 10
+ no shutdown
+exit
 interface fa0/3
+ switchport mode access
+ switchport access vlan 20
+ no shutdown
+exit
+interface fa0/4
  switchport mode access
  switchport access vlan 20
  no shutdown
@@ -383,7 +397,7 @@ show interfaces trunk
 ![SS-04 Switch Wien VLAN+Trunk](<screenshots/SS-02_Switch_show_vlan_brief_show_interfaces_trunk_2026-05-20.png>)
 
 ### Abhaken
-- [x] Phase 3 fertig ✅ (13.06.2026 – VLAN 10/20/30/40 aktiv, Fa0/1→VLAN10, Fa0/3→VLAN20, Fa0/24+Gi0/1 trunking)
+- [x] Phase 3 fertig ✅ (13.06.2026 – VLAN 10/20/30/40 aktiv, Fa0/1+Fa0/2→VLAN10, Fa0/3+Fa0/4→VLAN20, Fa0/24+Gi0/1 trunking)
 
 ---
 
@@ -476,24 +490,38 @@ Kommunikation absichern:
 ### Befehle
 ```bash
 configure terminal
+
+! --- Alte ACLs zuerst entfernen (löst Interface-Binding) ---
+no access-list 101
+no access-list 102
+no access-list 103
+
+! === ACL 101 – Production (VLAN10) ===
+! echo-reply für Management→Production Rückweg (NMC darf pingen)
+! deny ip statt deny icmp: blockiert ALLE Protokolle, nicht nur Ping
 access-list 101 remark Production VLAN10
-access-list 101 permit icmp 10.10.0.0 0.0.0.31 10.10.0.48 0.0.0.7
-access-list 101 permit icmp 10.10.0.0 0.0.0.31 10.10.0.0 0.0.0.31
-access-list 101 deny icmp 10.10.0.0 0.0.0.31 10.10.0.32 0.0.0.15
-access-list 101 deny icmp 10.10.0.0 0.0.0.31 10.10.0.56 0.0.0.7
+access-list 101 permit icmp 10.10.0.0 0.0.0.31 10.10.0.56 0.0.0.7 echo-reply
+access-list 101 permit ip 10.10.0.0 0.0.0.31 10.10.0.48 0.0.0.7
+access-list 101 permit ip 10.10.0.0 0.0.0.31 10.10.0.0 0.0.0.31
+access-list 101 deny ip 10.10.0.0 0.0.0.31 10.10.0.32 0.0.0.15
+access-list 101 deny ip 10.10.0.0 0.0.0.31 10.10.0.56 0.0.0.7
 access-list 101 permit ip any any
 
+! === ACL 102 – Office (VLAN20) ===
 access-list 102 remark Office VLAN20
-access-list 102 permit icmp 10.10.0.32 0.0.0.15 10.10.0.48 0.0.0.7
-access-list 102 permit icmp 10.10.0.32 0.0.0.15 10.10.0.32 0.0.0.15
-access-list 102 deny icmp 10.10.0.32 0.0.0.15 10.10.0.0 0.0.0.31
-access-list 102 deny icmp 10.10.0.32 0.0.0.15 10.10.0.56 0.0.0.7
+access-list 102 permit icmp 10.10.0.32 0.0.0.15 10.10.0.56 0.0.0.7 echo-reply
+access-list 102 permit ip 10.10.0.32 0.0.0.15 10.10.0.48 0.0.0.7
+access-list 102 permit ip 10.10.0.32 0.0.0.15 10.10.0.32 0.0.0.15
+access-list 102 deny ip 10.10.0.32 0.0.0.15 10.10.0.0 0.0.0.31
+access-list 102 deny ip 10.10.0.32 0.0.0.15 10.10.0.56 0.0.0.7
 access-list 102 permit ip any any
 
+! === ACL 103 – Management (VLAN40) ===
 access-list 103 remark Management VLAN40
-access-list 103 permit icmp 10.10.0.56 0.0.0.7 any
+access-list 103 permit ip 10.10.0.56 0.0.0.7 any
 access-list 103 permit ip any any
 
+! --- ACLs an Subinterfaces binden ---
 interface gi0/0.10
  ip access-group 101 in
 exit
@@ -502,6 +530,7 @@ interface gi0/0.20
 exit
 interface gi0/0.40
  ip access-group 103 in
+exit
 end
 show access-lists
 show ip interface gi0/0.10
@@ -571,6 +600,9 @@ ping 10.10.0.2
 | Phase | Problem | Ursache | Lösung |
 |---|---|---|---|
 | 7 | NMC → Production Ping Timeout | ACL 101 blockierte Echo-Reply-Pakete auf Gi0/0.10 | `echo-reply` Permit-Regel vor deny in ACL 101+102 eingefügt |
+| 10 | `ping 199.121.123.130` Teilweise Timeout | IP-Konflikt: statisches NAT `10.10.0.50 → 199.121.123.130` kollidierte mit direkt vergebener Web-Server-IP | Statisches NAT am Border Router gelöscht; Web-Server hat seine IP direkt |
+| 12 | Port-Security fehlte auf Linz/Graz + Switch Wien-Links Fa0/2+Fa0/4 | Nur teilweise konfiguriert | Port-Security auf allen Access-Ports aller Switches nachgerüstet |
+| 11 | SSH-Authentifizierung auf Switch1 (`10.10.0.60`) lehnt Passwort ab | Packet-Tracer-Bug: `login local` + `username ... secret` auf dieser Switch-Instanz defekt | Switch1 im PT löschen, durch neuen 2960-24TT ersetzen, Config aus running-config-Backup neu einspielen |
 
 ---
 
@@ -686,6 +718,7 @@ interface gi0/0
  no shutdown
 exit
 ip dhcp excluded-address 10.10.0.65
+ip dhcp excluded-address 10.10.0.66
 ip dhcp pool LINZ_LAN
  network 10.10.0.64 255.255.255.248
  default-router 10.10.0.65
@@ -701,6 +734,7 @@ interface gi0/0
  no shutdown
 exit
 ip dhcp excluded-address 10.10.0.129
+ip dhcp excluded-address 10.10.0.130
 ip dhcp pool GRAZ_LAN
  network 10.10.0.128 255.255.255.192
  default-router 10.10.0.129
@@ -786,6 +820,19 @@ show ip route
   - GW: `199.121.123.129`
 - Services → HTTP: **On**
 
+### Befehle (HQ Wien – Gi0/1 WAN-Link zum Border Router)
+```bash
+enable
+configure terminal
+interface gi0/1
+ ip address 10.10.0.82 255.255.255.252
+ no shutdown
+exit
+ip route 0.0.0.0 0.0.0.0 10.10.0.81
+end
+show ip interface brief
+```
+
 ### Screenshot
 ![SS-14 Web-Server HTTP](screenshots/SS-14_WebServer_HTTP_Test.png)
 
@@ -794,18 +841,18 @@ show ip route
 
 ---
 
-## Phase 10 – NAT/PAT + Statisches NAT (Web-Server)
+## Phase 10 – NAT/PAT (Internet-Zugriff)
 
 ### Ziel
 - Alle internen PCs → Internet über PAT (eine öffentliche IP)
-- Web-Server bekommt feste öffentliche IP `199.121.123.130` per statischem NAT
+- File-Server **bleibt rein intern** (kein NAT) — Sicherheitsgründen
+- Web-Server hat seine öffentliche IP direkt (`199.121.123.130`)
 
 ### Befehle (Border Router)
 ```bash
 enable
 configure terminal
 ip nat inside source list 1 interface gi0/0 overload
-ip nat inside source static 10.10.0.50 199.121.123.130
 
 access-list 1 permit 10.10.0.0 0.0.15.255
 
@@ -823,8 +870,8 @@ show ip nat translations
 | Regel | Funktion |
 |---|---|
 | `overload` | PAT: alle internen PCs teilen eine öffentliche IP |
-| `static 10.10.0.50 → 199.121.123.130` | Web-Server immer unter fixer IP erreichbar |
 | `access-list 1` | definiert welche internen Netze NAT nutzen dürfen |
+| **Kein** statisches NAT | File-Server (`10.10.0.50`) ist bewusst nur intern erreichbar |
 
 ### Verifikation
 ```bash
@@ -836,7 +883,7 @@ show ip nat statistics
 ![SS-13 NAT Translations](screenshots/SS-13_NAT_Translations.png)
 
 ### Abhaken
-- [x] Phase 10 fertig ✅ (13.06.2026 – `show ip nat translations` zeigt statisches NAT `10.10.0.50 ↔ 199.121.123.130` und PAT-ICMP-Übersetzungen)
+- [x] Phase 10 fertig ✅ (13.06.2026 – PAT konfiguriert, `show ip nat translations` zeigt PAT-Übersetzungen bei aktivem Internet-Traffic, kein statisches NAT)
 
 ---
 
@@ -845,11 +892,55 @@ show ip nat statistics
 ### Ziel
 Vom NMC (10.10.0.58) aus alle Router und Switches per SSH fernverwalten.
 
-### Befehle (auf JEDEM Router/Switch wiederholen)
+### Switch Management-IPs (SVI)
+
+Zuerst müssen die Switches eine IP erhalten, damit SSH möglich ist:
+
+| Switch | SVI-Interface | IP-Adresse | Subnetz | Default-Gateway |
+|---|---|---|---|---|
+| SW-Wien-Links | Vlan 40 | `10.10.0.59/29` | VLAN 40 (Management) | `10.10.0.57` |
+| Switch1 (Wien-Rechts) | Vlan 40 | `10.10.0.60/29` | VLAN 40 (Management) | `10.10.0.57` |
+| Switch3 (Linz) | Vlan 1 | `10.10.0.66/29` | Linz LAN | `10.10.0.65` |
+| Switch2 (Graz) | Vlan 1 | `10.10.0.130/26` | Graz LAN | `10.10.0.129` |
+
+### DHCP Excluded Addresses für Switch-IPs
+
+Damit DHCP die Switch-Management-IPs nicht an Clients vergibt:
+
+**Auf HQ Wien:**
+```bash
+configure terminal
+ip dhcp excluded-address 10.10.0.59
+ip dhcp excluded-address 10.10.0.60
+end
+```
+
+**Auf Branch Linz:**
+```bash
+configure terminal
+ip dhcp excluded-address 10.10.0.66
+end
+```
+
+**Auf Branch Graz:**
+```bash
+configure terminal
+ip dhcp excluded-address 10.10.0.130
+end
+```
+
+### SVI + SSH-Konfiguration (auf JEDEM Switch)
+
+**SW-Wien-Links:**
 ```bash
 enable
 configure terminal
-hostname HQWien
+hostname Wien-SW-Links
+interface vlan 40
+ ip address 10.10.0.59 255.255.255.248
+ no shutdown
+exit
+ip default-gateway 10.10.0.57
 ip domain-name frb.local
 crypto key generate rsa
  1024
@@ -860,23 +951,136 @@ line vty 0 4
  login local
 exit
 end
+write memory
 ```
 
-### Test vom NMC (Command Prompt)
+**Switch1 (Wien-Rechts):**
 ```bash
-ssh -l admin 10.10.0.1
+enable
+configure terminal
+hostname Wien-SW-Rechts
+interface vlan 40
+ ip address 10.10.0.60 255.255.255.248
+ no shutdown
+exit
+ip default-gateway 10.10.0.57
+ip domain-name frb.local
+crypto key generate rsa
+ 1024
+ip ssh version 2
+username admin privilege 15 secret cisco123
+line vty 0 4
+ transport input ssh
+ login local
+exit
+end
+write memory
 ```
-Passwort: `cisco123`
 
-### Soll-Ergebnis
-- Login-Prompt erscheint
-- Router-CLI über SSH erreichbar
+**Switch3 (Linz):**
+```bash
+enable
+configure terminal
+hostname SW-Linz
+interface vlan 1
+ ip address 10.10.0.66 255.255.255.248
+ no shutdown
+exit
+ip default-gateway 10.10.0.65
+ip domain-name frb.local
+crypto key generate rsa
+ 1024
+ip ssh version 2
+username admin privilege 15 secret cisco123
+line vty 0 4
+ transport input ssh
+ login local
+exit
+end
+write memory
+```
+
+**Switch2 (Graz):**
+```bash
+enable
+configure terminal
+hostname SW-Graz
+interface vlan 1
+ ip address 10.10.0.130 255.255.255.192
+ no shutdown
+exit
+ip default-gateway 10.10.0.129
+ip domain-name frb.local
+crypto key generate rsa
+ 1024
+ip ssh version 2
+username admin privilege 15 secret cisco123
+line vty 0 4
+ transport input ssh
+ login local
+exit
+end
+write memory
+```
+
+### SSH auf Branch-Routern (Linz + Graz)
+
+**Branch Linz:**
+```bash
+enable
+configure terminal
+hostname BranchLinz
+ip domain-name frb.local
+crypto key generate rsa
+ 1024
+ip ssh version 2
+username admin privilege 15 secret cisco123
+line vty 0 4
+ transport input ssh
+ login local
+exit
+end
+write memory
+```
+
+**Branch Graz:**
+```bash
+enable
+configure terminal
+hostname BranchGraz
+ip domain-name frb.local
+crypto key generate rsa
+ 1024
+ip ssh version 2
+username admin privilege 15 secret cisco123
+line vty 0 4
+ transport input ssh
+ login local
+exit
+end
+write memory
+```
+
+### Verifikation – Vom NMC aus testen
+
+| # | Befehl | Zielgerät | Ergebnis |
+|---|---|---|---|
+| 1 | `ssh -l admin 10.10.0.1` | HQ Wien (Gi0/0.10) | ✅ |
+| 2 | `ssh -l admin 10.10.0.81` | Border Router | ✅ |
+| 3 | `ssh -l admin 10.10.0.74` | Branch Linz (Se0/3/0) | ✅ |
+| 4 | `ssh -l admin 10.10.0.78` | Branch Graz (Se0/3/0) | ✅ |
+| 5 | `ssh -l admin 10.10.0.59` | SW-Wien-Links (Vlan40) | ✅ |
+| 6 | `ssh -l admin 10.10.0.60` | Switch1 / Wien-Rechts (Vlan40) | ⚠️ PT-Bug (siehe Notizen) |
+| 7 | `ssh -l admin 10.10.0.66` | SW-Linz (Vlan1) | ✅ |
+| 8 | `ssh -l admin 10.10.0.130` | SW-Graz (Vlan1) | ✅ |
+| 9 | `ssh -l admin 10.10.0.65` | Branch Linz (Gi0/0) | ✅ |
+| 10 | `ssh -l admin 10.10.0.129` | Branch Graz (Gi0/0) | ✅ |
 
 ### Screenshot
 ![SS-15 SSH Setup + NMC Login auf HQWien](<screenshots/Bildschirmfoto vom 2026-06-13 23-49-37.png>)
 
 ### Abhaken
-- [x] Phase 11 fertig ✅ (13.06.2026 – SSH v2 aktiviert, Login vom NMC mit `admin` auf `HQWien` erfolgreich)
+- [x] Phase 11 fertig ✅ (13.06.2026 – SSH v2 auf allen 4 Routern und 3 von 4 Switches; Switch1 benötigt PT-Switch-Ersatz wegen Auth-Bug)
 
 ---
 
@@ -895,15 +1099,26 @@ interface fa0/1
  switchport port-security violation restrict
  switchport port-security mac-address sticky
 exit
+interface fa0/2
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+exit
 interface fa0/3
  switchport port-security
  switchport port-security maximum 1
  switchport port-security violation restrict
  switchport port-security mac-address sticky
 exit
+interface fa0/4
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+exit
 end
-show port-security interface fa0/1
-show port-security interface fa0/3
+show port-security
 ```
 
 ### Befehle (Switch1, auf jedem Access-Port wiederholen)
@@ -937,6 +1152,34 @@ end
 show port-security
 ```
 
+### Befehle (Switch Linz, Access-Ports)
+```bash
+enable
+configure terminal
+interface range fa0/1 - 4
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+exit
+end
+show port-security
+```
+
+### Befehle (Switch Graz, Access-Ports)
+```bash
+enable
+configure terminal
+interface range fa0/1 - 24
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+exit
+end
+show port-security
+```
+
 ### Erklärung
 | Parameter | Funktion |
 |---|---|
@@ -948,7 +1191,7 @@ show port-security
 ![SS-16 Port-Security SW-Wien-Links + Switch1](<screenshots/Bildschirmfoto vom 2026-06-14 00-02-50.png>)
 
 ### Abhaken
-- [x] Phase 12 fertig ✅ (13.06.2026 – Port-Security auf SW-Wien-Links und Switch1, max 1 MAC, violation restrict, sticky)
+- [x] Phase 12 fertig ✅ (13.06.2026 – Port-Security auf SW-Wien-Links, Switch1, Switch Linz und Switch Graz, max 1 MAC, violation restrict, sticky)
 
 ---
 
@@ -964,7 +1207,7 @@ show port-security
 | Linz/Graz → Wien | „Kommen die Außenstellen zur Zentrale durch?“ | Ja, über die WAN-Verbindung | ✅ Funktioniert |
 | Browser: `http://199.121.123.130` | „Ist die Webseite von außen erreichbar?“ | Ja, Seite muss laden | ✅ Funktioniert |
 | `show ip nat translations` | „Übersetzt der Border-Router interne in öffentliche Adressen?“ | Ja, Einträge müssen sichtbar sein | ✅ Nachweis vorhanden |
-| Optional: `ping 199.121.123.130` | „Antwortet die öffentliche IP auch auf Ping?“ | Kann erlaubt oder absichtlich gesperrt sein | ⚠️ Teilweise Timeout |
+| `ping 199.121.123.130` | „Antwortet die öffentliche IP auch auf Ping?“ | Ja, Web-Server antwortet auf ICMP | ✅ Funktioniert |
 
 ### Warum funktioniert manches – und manches nicht?
 
@@ -975,14 +1218,11 @@ Stell dir das Netzwerk wie ein Gebäude mit Türen vor:
 
 Das ist **gewollt** und ein Zeichen, dass die Sicherheitsregeln korrekt arbeiten.
 
-### Warum geht Webseite, aber Ping manchmal nicht?
+### Korrektur: Ping zum Web-Server funktioniert jetzt zuverlässig
 
-Das ist ein häufiger Fall in echten Netzwerken:
+Ursprünglich gab es einen IP-Adresskonflikt: Der Border Router hatte ein statisches NAT `10.10.0.50 → 199.121.123.130`, das den internen File-Server auf dieselbe öffentliche IP mappte, die der Web-Server direkt besitzt. Der Router wusste dadurch nicht, ob eingehende Pakete an den Web-Server oder den File-Server gehen — das führte zu intermittierenden Timeouts.
 
-- Der Browser nutzt **HTTP** (Web-Verkehr) → ist erlaubt ✅
-- Ping nutzt **ICMP** → kann aus Sicherheitsgründen blockiert sein ❌
-
-Darum kann die Webseite laden, obwohl Ping auf dieselbe öffentliche IP keine Antwort gibt. Das ist **kein Fehler**, sondern oft eine bewusste Einstellung.
+**Lösung:** Das statische NAT wurde gelöscht. Der Web-Server (`199.121.123.130`) ist jetzt direkt und eindeutig erreichbar — sowohl per HTTP als auch per ICMP. Der File-Server (`10.10.0.50`) bleibt bewusst rein intern.
 
 ### Verständliches Gesamtfazit
 

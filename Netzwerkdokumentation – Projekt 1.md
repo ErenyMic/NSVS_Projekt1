@@ -106,9 +106,9 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 | Port | Gerät | VLAN | Port-Typ |
 |---|---|---|---|
 | Fa 0/1 | Production PC1 | VLAN 10 | Access |
-| Fa 0/2 | Production PC3 | VLAN 10 | Access |
+| Fa 0/2 | Production PC2 | VLAN 10 | Access |
 | Fa 0/3 | Office PC2 | VLAN 20 | Access |
-| Fa 0/4 | Office PC4 | VLAN 20 | Access |
+| Fa 0/4 | Office PC3 | VLAN 20 | Access |
 | Fa 0/24 | → Switch Rechts | Trunk | Trunk |
 | Gi 0/1 | → HQ Wien Router | Trunk | Trunk |
 
@@ -116,11 +116,11 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 
 | Port | Gerät | VLAN | Port-Typ |
 |---|---|---|---|
-| Fa 0/1 | File-Server | VLAN 30 | Access |
-| Fa 0/2 | Web-Server | VLAN 30 | Access |
-| Fa 0/3 | NMC (Management PC) | VLAN 40 | Access |
+| Fa 0/1 | Production PC3 | VLAN 10 | Access |
+| Fa 0/2 | NMC (Management PC) | VLAN 40 | Access |
+| Fa 0/3 | Office PC4 | VLAN 20 | Access |
+| Fa 0/4 | File-Server | VLAN 30 | Access |
 | Fa 0/24 | → Switch Links | Trunk | Trunk |
-| Gi 0/1 | → HQ Wien Router | Trunk | Trunk |
 
 ### Switch Linz
 
@@ -171,7 +171,7 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 | PC | Office PC4 | VLAN 20 – Wien Verwaltung | DHCP |
 | PC | NMC | VLAN 40 – Management | Fixe IP |
 | Server | File-Server | VLAN 30 – Wien Server | Fixe IP (intern) |
-| Server | Web-Server | VLAN 30 / öffentlich | `199.121.123.130` (fix) |
+| Server | Web-Server | Öffentlich (Border Router) | `199.121.123.130` (fix) |
 | PC | Linz PC1–PC4 | VLAN 50 – Linz LAN | DHCP |
 | PC | Graz PC1–PC40 | VLAN 60 – Graz LAN | DHCP |
 
@@ -204,9 +204,9 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 | Maßnahme | Wo | Beschreibung | Begründung |
 |---|---|---|---|
 | ACL-Zugriffssteuerung | HQ Wien Router (Subinterfaces) | Kommunikation zwischen Abteilungen wird gezielt erlaubt oder blockiert | Reduziert ungewollte Zugriffe zwischen VLANs (z. B. Produktion ↔ Office) und setzt das Least-Privilege-Prinzip um. |
-| NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP | Interne Adressen bleiben nach außen verborgen; zusätzlich werden öffentliche IPs effizient genutzt. |
-| Statisches NAT (Web-Server) | Border Router | Web-Server fix auf `199.121.123.130` | Der Webdienst ist von außen stabil unter einer festen öffentlichen IP erreichbar. |
-| File-Server isoliert (kein NAT) | Kein NAT-Eintrag am Border Router | File-Server bleibt nur intern über VLAN 30 erreichbar | Verhindert direkte Erreichbarkeit aus externen Netzen und schützt interne Daten. |
+| NAT/PAT | Border Router | Alle internen PCs → eine öffentliche IP (Overload) | Interne Adressen bleiben nach außen verborgen; zusätzlich werden öffentliche IPs effizient genutzt. |
+| Web-Server direkt öffentlich | Web-Server direkt an Border Router | Web-Server hat feste öffentliche IP `199.121.123.130` ohne NAT | Der Webdienst ist von außen stabil und eindeutig erreichbar. |
+| File-Server isoliert (kein NAT) | Kein NAT-Eintrag am Border Router | File-Server (`10.10.0.50`) bleibt nur intern über VLAN 30 erreichbar | Verhindert direkte Erreichbarkeit aus externen Netzen und schützt interne Daten. |
 | Port-Security | Alle Access Switches | Max. 1 MAC-Adresse pro Port, `violation restrict`, `sticky` | Erschwert das Anstecken fremder Geräte und begrenzt Missbrauch an physischen Ports. |
 | NMC Remote-Management (SSH) | VLAN 40 / Router & Switches | Administrativer Zugriff über SSH statt Telnet | Zugangsdaten und Management-Verkehr sind verschlüsselt; sicherer Betrieb der Netzwerkgeräte. |
 | VLAN-Trennung | Alle Switches | Abteilungen sind logisch in getrennten VLANs aufgebaut | Segmentierung begrenzt Broadcast-Domänen und erhöht Sicherheit sowie Übersichtlichkeit. |
@@ -219,9 +219,10 @@ Daher: **`199.121.123.128/29`** (6 nutzbare Hosts).
 - [x] Access Ports zugewiesen
 - [x] Trunk Ports konfiguriert
 - [x] Subinterfaces am HQ Wien Router (Inter-VLAN Routing)
-- [x] DHCP-Pools auf HQ Wien Router
-- [x] ACLs für VLAN-Zugriffe umgesetzt
-- [x] Testen: Ping, ACL-Verhalten, Gateway-Erreichbarkeit
+- [x] DHCP-Pools auf HQ Wien Router (exkl. File-Server + NMC)
+- [x] ACLs für VLAN-Zugriffe umgesetzt (`deny ip`, nicht nur `deny icmp`)
+- [x] Port-Security auf allen Switches (Wien-Links, Switch1, Linz, Graz)
+- [x] Testen: Ping, ACL-Verhalten, Gateway-Erreichbarkeit, Web-Server ICMP+HTTP
 
 ---
 
